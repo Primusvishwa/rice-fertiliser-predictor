@@ -181,7 +181,7 @@ st.markdown("The following plots validate the ML models trained on rice cultivat
 
 with st.expander("📉 Predicted vs Actual"):
    st.image("Plots/plot1_predicted_vs_actual.png", use_container_width=True)
-    st.caption("Each point represents a test sample. Points close to the red line indicate accurate predictions.")
+   st.caption("Each point represents a test sample. Points close to the red line indicate accurate predictions.")
 
 with st.expander("📊 Feature Importance"):
     st.image("Plots/plot2_feature_importance.png", use_container_width=True)
