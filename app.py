@@ -21,6 +21,14 @@ st.markdown("---")
 # ── Input Section ──────────────────────────────────────────────────────────────
 st.subheader("Enter Fertiliser Application Rates (kg/ha)")
 
+# Recommended ranges info box
+st.info("""
+**Recommended Application Ranges (kg/ha):**
+Nitrogen (N): 120 – 150  |  Phosphorus (P): 40 – 60  |  Potassium (K): 20 – 40  |  Zinc (Zn): 15 – 30
+
+⚠️ Staying within these ranges ensures reliable predictions. Values outside may give inaccurate results.
+""")
+
 col1, col2 = st.columns(2)
 
 with col1:
@@ -31,15 +39,17 @@ with col2:
     P  = st.number_input("Phosphorus (P)",  min_value=0.0, value=50.0,  step=0.5)
     Zn = st.number_input("Zinc (Zn)",       min_value=0.0, value=20.0,  step=0.5)
 
-# ── Validation ─────────────────────────────────────────────────────────────────
+# ── Instant Validation ─────────────────────────────────────────────────────────
 ranges = {'N': (120, 150), 'P': (40, 60), 'K': (30, 40), 'Zn': (10, 30)}
 inputs = {'N': N, 'P': P, 'K': K, 'Zn': Zn}
-out_of_range = [f"**{k}** = {v} (trained range: {ranges[k][0]}–{ranges[k][1]} kg)"
+out_of_range = [f"**{k}** = {v} kg  (valid range: {ranges[k][0]}–{ranges[k][1]} kg)"
                 for k, v in inputs.items() if not (ranges[k][0] <= v <= ranges[k][1])]
 
 if out_of_range:
-    st.warning("⚠️ Some inputs are outside the trained range — results may be less reliable:\n\n" +
-               "\n".join(f"- {w}" for w in out_of_range))
+    st.error("🚨 Out of range — predictions may be unreliable:\n\n" +
+             "\n".join(f"- {w}" for w in out_of_range))
+else:
+    st.success("✅ All inputs are within the recommended ranges!")
 
 # ── Predict Button ─────────────────────────────────────────────────────────────
 st.markdown("---")
