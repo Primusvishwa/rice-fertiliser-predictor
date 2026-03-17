@@ -190,3 +190,21 @@ with st.expander("📊 Feature Importance"):
 with st.expander("📈 Input vs Impact"):
     st.image("Plots/plot3_input_vs_impact.png", use_container_width=True)
     st.caption("Shows how each impact score changes as individual fertiliser inputs increase.")
+    # ── Fertiliser Impact Intensity ───────────────────────────────────────────────
+st.markdown("---")
+st.subheader("⚗️ Fertiliser Impact Intensity")
+st.markdown("Environmental impact caused by **1 kg of each fertiliser input**, calculated independently in OpenLCA.")
+
+impact_data = {
+    "Input": ["Nitrogen (N)", "Phosphorus (P)", "Potassium (K)", "Zinc (Zn)"],
+    "Global Warming (kg CO₂-eq)": [4.964134, 2.906595, 3.016340, 0.777299],
+    "Terrestrial Acidification (kg SO₂-eq)": [0.021555, 0.014359, 0.012404, 0.006452],
+    "Freshwater Eutrophication (kg P-eq)": [0.001469, 0.001000, 0.000679, 0.000460],
+    "Terrestrial Ecotoxicity (CTUe)": [5.186745, 4.168297, 2.671163, 612.915864],
+}
+
+import pandas as pd
+df_intensity = pd.DataFrame(impact_data)
+st.dataframe(df_intensity, use_container_width=True, hide_index=True)
+
+st.info("💡 Notice how **Zinc (Zn)** has dramatically higher ecotoxicity per kg (612.9 CTUe) compared to N, P and K (2.7–5.2 CTUe). This is why Zn is the sole driver of Terrestrial Ecotoxicity in the ML model.")
