@@ -180,13 +180,13 @@ st.subheader("📈 Model Validation")
 st.markdown("The following plots validate the ML models trained on rice cultivation LCA data.")
 
 with st.expander("📉 Predicted vs Actual"):
-    st.image("plot1_predicted_vs_actual.png", use_container_width=True)
+   st.image("Plots/plot1_predicted_vs_actual.png", use_container_width=True)
     st.caption("Each point represents a test sample. Points close to the red line indicate accurate predictions.")
 
 with st.expander("📊 Feature Importance"):
-    st.image("plot2_feature_importance.png", use_container_width=True)
+    st.image("Plots/plot2_feature_importance.png", use_container_width=True)
     st.caption("Shows how much each fertiliser input (N, P, K, Zn) influences each impact category.")
 
 with st.expander("📈 Input vs Impact"):
-    st.image("plot3_input_vs_impact.png", use_container_width=True)
+    st.image("Plots/plot3_input_vs_impact.png", use_container_width=True)
     st.caption("Shows how each impact score changes as individual fertiliser inputs increase.")
