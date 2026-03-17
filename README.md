@@ -103,10 +103,3 @@ streamlit run app.py
 B.Tech Biotechnology
 *College Project — Environmental Impact Prediction using Machine Learning*
 ```
-
-Save it, then push:
-```
-cd "C:\Users\scvst\Desktop\ML Project"
-git add README.md
-git commit -m "Add README"
-git push
