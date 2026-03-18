@@ -9,17 +9,14 @@ st.set_page_config(
     layout="centered"
 )
 
-# ── Load Models ────────────────────────────────────────────────────────────────
-model1 = joblib.load("model1_env_impacts.pkl")
-model2 = joblib.load("model2_ecotoxicity.pkl")
+# ── Load Model ─────────────────────────────────────────────────────────────────
+model = joblib.load("model_all_impacts.pkl")
 
 # ── Helper Functions ───────────────────────────────────────────────────────────
 def predict(N, P, K, Zn):
-    env_inputs = pd.DataFrame([[N, P, K, Zn]], columns=['N_rate', 'P_rate', 'K_rate', 'Zn_rate'])
-    eco_inputs = pd.DataFrame([[Zn]], columns=['Zn_rate'])
-    env_pred = model1.predict(env_inputs)[0]
-    eco_pred = model2.predict(eco_inputs)[0]
-    return env_pred[0], env_pred[1], env_pred[2], eco_pred
+    inputs = pd.DataFrame([[N, P, K, Zn]], columns=['N_rate', 'P_rate', 'K_rate', 'Zn_rate'])
+    pred = model.predict(inputs)[0]
+    return pred[0], pred[1], pred[2], pred[3]
 
 def validate(N, P, K, Zn):
     ranges = {'N': (120, 150), 'P': (40, 60), 'K': (30, 40), 'Zn': (10, 30)}
@@ -29,7 +26,7 @@ def validate(N, P, K, Zn):
 
 # ── Header ─────────────────────────────────────────────────────────────────────
 st.title("🌱 Rice Fertiliser Impact Predictor")
-st.markdown("A tool for predicting the **environmental impact** of fertiliser application in rice cultivation — without needing a full Life Cycle Assessment.")
+st.markdown("Predict the **environmental impact** of fertiliser application in rice cultivation — without needing a full Life Cycle Assessment.")
 st.markdown("---")
 
 # ── Tabs ───────────────────────────────────────────────────────────────────────
@@ -41,7 +38,7 @@ tab1, tab2 = st.tabs(["🔬 LCA Impact Predictor", "🌾 Field Emission Calculat
 with tab1:
 
     st.subheader("Predict Environmental Impact Scores")
-    st.markdown("Uses a trained ML model to predict LCA impact scores from fertiliser inputs.")
+    st.markdown("Uses a trained **Multivariate Linear Regression** model to predict LCA impact scores from fertiliser inputs.")
 
     mode = st.radio("Select Mode", ["Single Prediction", "Compare Two Combinations"], horizontal=True)
     st.markdown("---")
@@ -170,7 +167,7 @@ with tab1:
     # ── Model Validation ───────────────────────────────────────────────────────
     st.markdown("---")
     st.subheader("📈 Model Validation")
-    st.markdown("The following plots validate the ML models trained on rice cultivation LCA data.")
+    st.markdown("The following plots validate the ML model trained on rice cultivation LCA data.")
 
     with st.expander("📉 Predicted vs Actual"):
         st.image("Plots/plot1_predicted_vs_actual.png", use_container_width=True)
@@ -198,7 +195,7 @@ with tab1:
     }
     df_intensity = pd.DataFrame(impact_data)
     st.dataframe(df_intensity, use_container_width=True, hide_index=True)
-    st.info("💡 **Zinc (Zn)** has dramatically higher ecotoxicity per kg (612.9 CTUe) compared to N, P and K (2.7–5.2 CTUe). This is why Zn is the sole driver of Terrestrial Ecotoxicity in the ML model.")
+    st.info("💡 **Zinc (Zn)** has dramatically higher ecotoxicity per kg (612.9 CTUe) compared to N, P and K (2.7–5.2 CTUe).")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 2 — FIELD EMISSION CALCULATOR
@@ -209,14 +206,13 @@ with tab2:
     st.markdown("Calculate direct field emissions from fertiliser application based on **IPCC** and **SALCA** methodologies.")
     st.markdown("---")
 
-    # ── Inputs ─────────────────────────────────────────────────────────────────
     st.subheader("Inputs")
 
     col1, col2 = st.columns(2)
     with col1:
         irrigation = st.selectbox("Irrigation Mode", ["Fully Flooded", "AWD (Alternate Wetting & Drying)"])
-        FSN   = st.number_input("Synthetic Nitrogen — FSN (kg/ha)",   min_value=0.0, value=135.0, step=0.5)
-        P_syn = st.number_input("Synthetic Phosphorus — P (kg/ha)",   min_value=0.0, value=50.0,  step=0.5)
+        FSN   = st.number_input("Synthetic Nitrogen — FSN (kg/ha)",  min_value=0.0, value=135.0, step=0.5)
+        P_syn = st.number_input("Synthetic Phosphorus — P (kg/ha)",  min_value=0.0, value=50.0,  step=0.5)
 
     with col2:
         amendment1 = st.selectbox("Organic Amendment 1", ["None", "Farm-Yard Manure", "Vermicompost"], key="am1")
@@ -231,17 +227,14 @@ with tab2:
         else:
             amt2 = 0.0
 
-    # ── Composition Table ──────────────────────────────────────────────────────
     amendment_composition = {
         "None":             {"N": 0.0, "P2O5": 0.0, "K2O": 0.0},
         "Farm-Yard Manure": {"N": 0.5, "P2O5": 0.2, "K2O": 0.5},
         "Vermicompost":     {"N": 1.5, "P2O5": 0.9, "K2O": 1.2},
     }
 
-    # ── Derived Values ─────────────────────────────────────────────────────────
     comp1     = amendment_composition[amendment1]
     comp2     = amendment_composition[amendment2]
-
     FON       = (amt1 * comp1["N"] / 100) + (amt2 * comp2["N"] / 100)
     P_organic = (amt1 * comp1["P2O5"] / 100 * 0.436) + (amt2 * comp2["P2O5"] / 100 * 0.436)
     N_total   = FSN + FON
@@ -250,7 +243,6 @@ with tab2:
     flooded   = irrigation == "Fully Flooded"
     SFw       = 1.0 if flooded else 0.55
 
-    # ── Show Derived Values ────────────────────────────────────────────────────
     if amendment1 != "None" or amendment2 != "None":
         lines = []
         if amendment1 != "None":
@@ -262,33 +254,15 @@ with tab2:
 
     st.markdown("---")
 
-    # ── Calculate Button ───────────────────────────────────────────────────────
     if st.button("🧮 Calculate Field Emissions", use_container_width=True):
 
-        # CH₄
-        ch4 = 107.1 * SFo * SFw
+        ch4      = 107.1 * SFo * SFw
+        EF_n2o   = 0.003 if flooded else 0.0073
+        n2o      = N_total * EF_n2o * (44 / 28)
+        no3      = N_total * (0.009 if flooded else 0.018) * (62 / 14)
+        nh3      = N_total * (0.30 if flooded else 0.15) * (17 / 14)
+        po4      = P_total * (0.01 if flooded else 0.0055) * (95 / 31)
 
-        # N₂O
-        EF_n2o = 0.003 if flooded else 0.0073
-        n2o_n  = N_total * EF_n2o
-        n2o    = n2o_n * (44 / 28)
-
-        # NO₃
-        LF     = 0.009 if flooded else 0.018
-        no3_n  = N_total * LF
-        no3    = no3_n * (62 / 14)
-
-        # NH₃
-        EF_nh3 = 0.30 if flooded else 0.15
-        nh3_n  = N_total * EF_nh3
-        nh3    = nh3_n * (17 / 14)
-
-        # PO₄
-        RF       = 0.01 if flooded else 0.0055
-        p_runoff = P_total * RF
-        po4      = p_runoff * (95 / 31)
-
-        # ── Results ────────────────────────────────────────────────────────────
         st.subheader("📊 Field Emission Results (kg/ha/season)")
 
         col1, col2 = st.columns(2)
@@ -301,13 +275,11 @@ with tab2:
             st.metric("🌊 Phosphate (PO₄)",      f"{po4:.4f} kg/ha/season", help="SALCA methodology")
 
         st.markdown("---")
-
-        # ── Summary Table ──────────────────────────────────────────────────────
         st.subheader("📋 Summary")
         results_df = pd.DataFrame({
-            "Emission":              ["CH₄", "N₂O", "NO₃", "NH₃", "PO₄"],
-            "Value (kg/ha/season)":  [round(ch4, 4), round(n2o, 4), round(no3, 4), round(nh3, 4), round(po4, 4)],
-            "Methodology":           ["IPCC", "IPCC", "IPCC", "IPCC", "SALCA"]
+            "Emission":             ["CH₄", "N₂O", "NO₃", "NH₃", "PO₄"],
+            "Value (kg/ha/season)": [round(ch4,4), round(n2o,4), round(no3,4), round(nh3,4), round(po4,4)],
+            "Methodology":          ["IPCC", "IPCC", "IPCC", "IPCC", "SALCA"]
         })
         st.dataframe(results_df, use_container_width=True, hide_index=True)
 
