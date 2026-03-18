@@ -215,39 +215,50 @@ with tab2:
     col1, col2 = st.columns(2)
     with col1:
         irrigation = st.selectbox("Irrigation Mode", ["Fully Flooded", "AWD (Alternate Wetting & Drying)"])
-        FSN = st.number_input("Synthetic Nitrogen — FSN (kg/ha)", min_value=0.0, value=135.0, step=0.5)
-        P_syn = st.number_input("Synthetic Phosphorus — P (kg/ha)", min_value=0.0, value=50.0, step=0.5)
+        FSN   = st.number_input("Synthetic Nitrogen — FSN (kg/ha)",   min_value=0.0, value=135.0, step=0.5)
+        P_syn = st.number_input("Synthetic Phosphorus — P (kg/ha)",   min_value=0.0, value=50.0,  step=0.5)
 
     with col2:
-        amendment = st.selectbox("Organic Amendment", ["None", "FYM", "Vermicompost"])
-        if amendment != "None":
-            amendment_kg = st.number_input(f"{amendment} amount (kg/ha)", min_value=0.0, value=1000.0, step=10.0)
+        amendment1 = st.selectbox("Organic Amendment 1", ["None", "Farm-Yard Manure", "Vermicompost"], key="am1")
+        if amendment1 != "None":
+            amt1 = st.number_input(f"{amendment1} amount (kg/ha)", min_value=0.0, value=1000.0, step=10.0, key="amt1")
         else:
-            amendment_kg = 0.0
+            amt1 = 0.0
 
-    # ── Derived Values ─────────────────────────────────────────────────────────
+        amendment2 = st.selectbox("Organic Amendment 2", ["None", "Farm-Yard Manure", "Vermicompost"], key="am2")
+        if amendment2 != "None":
+            amt2 = st.number_input(f"{amendment2} amount (kg/ha)", min_value=0.0, value=1000.0, step=10.0, key="amt2")
+        else:
+            amt2 = 0.0
+
+    # ── Composition Table ──────────────────────────────────────────────────────
     amendment_composition = {
-        "None":         {"N": 0.0,  "P2O5": 0.0,  "K2O": 0.0},
-        "FYM":          {"N": 0.5,  "P2O5": 0.2,  "K2O": 0.5},
-        "Vermicompost": {"N": 1.5,  "P2O5": 0.9,  "K2O": 1.2},
+        "None":             {"N": 0.0, "P2O5": 0.0, "K2O": 0.0},
+        "Farm-Yard Manure": {"N": 0.5, "P2O5": 0.2, "K2O": 0.5},
+        "Vermicompost":     {"N": 1.5, "P2O5": 0.9, "K2O": 1.2},
     }
 
-    comp      = amendment_composition[amendment]
-    FON       = amendment_kg * comp["N"] / 100
-    P_organic = amendment_kg * comp["P2O5"] / 100 * 0.436
+    # ── Derived Values ─────────────────────────────────────────────────────────
+    comp1     = amendment_composition[amendment1]
+    comp2     = amendment_composition[amendment2]
+
+    FON       = (amt1 * comp1["N"] / 100) + (amt2 * comp2["N"] / 100)
+    P_organic = (amt1 * comp1["P2O5"] / 100 * 0.436) + (amt2 * comp2["P2O5"] / 100 * 0.436)
     N_total   = FSN + FON
     P_total   = P_syn + P_organic
-    SFo       = 1.4 if amendment != "None" else 1.0
+    SFo       = 1.4 if (amendment1 != "None" or amendment2 != "None") else 1.0
     flooded   = irrigation == "Fully Flooded"
     SFw       = 1.0 if flooded else 0.55
 
-    # ── Show derived values ────────────────────────────────────────────────────
-    if amendment != "None":
-        st.info(f"""
-        **Derived from {amendment} ({amendment_kg} kg/ha):**
-        FON = {FON:.2f} kg N/ha  |  P from organic = {P_organic:.2f} kg P/ha  |  
-        Total N = {N_total:.2f} kg/ha  |  Total P = {P_total:.2f} kg/ha
-        """)
+    # ── Show Derived Values ────────────────────────────────────────────────────
+    if amendment1 != "None" or amendment2 != "None":
+        lines = []
+        if amendment1 != "None":
+            lines.append(f"**{amendment1}** ({amt1} kg/ha) → FON = {amt1 * comp1['N'] / 100:.2f} kg N/ha | P = {amt1 * comp1['P2O5'] / 100 * 0.436:.2f} kg P/ha")
+        if amendment2 != "None":
+            lines.append(f"**{amendment2}** ({amt2} kg/ha) → FON = {amt2 * comp2['N'] / 100:.2f} kg N/ha | P = {amt2 * comp2['P2O5'] / 100 * 0.436:.2f} kg P/ha")
+        lines.append(f"**Total N = {N_total:.2f} kg/ha  |  Total P = {P_total:.2f} kg/ha**")
+        st.info("\n\n".join(lines))
 
     st.markdown("---")
 
@@ -258,45 +269,45 @@ with tab2:
         ch4 = 107.1 * SFo * SFw
 
         # N₂O
-        EF_n2o  = 0.003 if flooded else 0.0073
-        n2o_n   = N_total * EF_n2o
-        n2o     = n2o_n * (44 / 28)
+        EF_n2o = 0.003 if flooded else 0.0073
+        n2o_n  = N_total * EF_n2o
+        n2o    = n2o_n * (44 / 28)
 
         # NO₃
-        LF      = 0.009 if flooded else 0.018
-        no3_n   = N_total * LF
-        no3     = no3_n * (62 / 14)
+        LF     = 0.009 if flooded else 0.018
+        no3_n  = N_total * LF
+        no3    = no3_n * (62 / 14)
 
         # NH₃
-        EF_nh3  = 0.30 if flooded else 0.15
-        nh3_n   = N_total * EF_nh3
-        nh3     = nh3_n * (17 / 14)
+        EF_nh3 = 0.30 if flooded else 0.15
+        nh3_n  = N_total * EF_nh3
+        nh3    = nh3_n * (17 / 14)
 
         # PO₄
-        RF      = 0.01 if flooded else 0.0055
+        RF       = 0.01 if flooded else 0.0055
         p_runoff = P_total * RF
-        po4     = p_runoff * (95 / 31)
+        po4      = p_runoff * (95 / 31)
 
         # ── Results ────────────────────────────────────────────────────────────
         st.subheader("📊 Field Emission Results (kg/ha/season)")
 
         col1, col2 = st.columns(2)
         with col1:
-            st.metric("🔥 Methane (CH₄)",         f"{ch4:.4f} kg/ha/season",    help="IPCC methodology")
-            st.metric("⚡ Nitrous Oxide (N₂O)",    f"{n2o:.4f} kg/ha/season",    help="IPCC methodology")
-            st.metric("💧 Nitrate (NO₃)",          f"{no3:.4f} kg/ha/season",    help="IPCC methodology")
+            st.metric("🔥 Methane (CH₄)",       f"{ch4:.4f} kg/ha/season", help="IPCC methodology")
+            st.metric("⚡ Nitrous Oxide (N₂O)",  f"{n2o:.4f} kg/ha/season", help="IPCC methodology")
+            st.metric("💧 Nitrate (NO₃)",        f"{no3:.4f} kg/ha/season", help="IPCC methodology")
         with col2:
-            st.metric("💨 Ammonia (NH₃)",          f"{nh3:.4f} kg/ha/season",    help="IPCC methodology")
-            st.metric("🌊 Phosphate (PO₄)",        f"{po4:.4f} kg/ha/season",    help="SALCA methodology")
+            st.metric("💨 Ammonia (NH₃)",        f"{nh3:.4f} kg/ha/season", help="IPCC methodology")
+            st.metric("🌊 Phosphate (PO₄)",      f"{po4:.4f} kg/ha/season", help="SALCA methodology")
 
         st.markdown("---")
 
         # ── Summary Table ──────────────────────────────────────────────────────
         st.subheader("📋 Summary")
         results_df = pd.DataFrame({
-            "Emission": ["CH₄", "N₂O", "NO₃", "NH₃", "PO₄"],
-            "Value (kg/ha/season)": [ch4, n2o, no3, nh3, po4],
-            "Methodology": ["IPCC", "IPCC", "IPCC", "IPCC", "SALCA"]
+            "Emission":              ["CH₄", "N₂O", "NO₃", "NH₃", "PO₄"],
+            "Value (kg/ha/season)":  [round(ch4, 4), round(n2o, 4), round(no3, 4), round(nh3, 4), round(po4, 4)],
+            "Methodology":           ["IPCC", "IPCC", "IPCC", "IPCC", "SALCA"]
         })
         st.dataframe(results_df, use_container_width=True, hide_index=True)
 
