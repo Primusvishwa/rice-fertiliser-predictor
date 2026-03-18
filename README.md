@@ -13,7 +13,7 @@ Life Cycle Assessment is the gold standard for measuring environmental impact of
 - Technical expertise
 - Hours of manual setup
 
-This project makes LCA-based insights accessible to **anyone** — farmers, researchers, students — by training ML models on LCA outputs and wrapping them in a simple web interface.
+This project makes LCA-based insights accessible to **anyone** — farmers, researchers, students — by training an ML model on LCA outputs and wrapping it in a simple web interface.
 
 ---
 
@@ -40,14 +40,30 @@ This project makes LCA-based insights accessible to **anyone** — farmers, rese
   - Zn: 10–30 kg/ha
 - 1000 samples using OAT (One-At-a-Time) and RANDOM sampling
 
-### Models
-| Model | Inputs | Targets | Algorithm | R² |
-|---|---|---|---|---|
-| Model 1 | N, P, K, Zn | GWP, Eutrophication, Acidification | Random Forest | 0.96+ |
-| Model 2 | Zn | Ecotoxicity | Linear Regression | 0.9998 |
+### Model
+
+| Inputs | Targets | Algorithm | R² |
+|---|---|---|---|
+| N, P, K, Zn | GWP, Eutrophication, Acidification, Ecotoxicity | Multivariate Linear Regression | 1.0000 |
 
 ### Key Finding
-Feature importance analysis revealed that **Zn exclusively drives Ecotoxicity** (importance = 1.0), while N dominates the remaining three impact categories (~75% importance). This led to a two-model architecture for optimal performance.
+Feature importance analysis revealed that the relationships between fertiliser inputs and all four LCA impact categories are **perfectly linear** within the trained input ranges. A single **Multivariate Linear Regression** model with N, P, K, Zn as inputs accurately predicts all four impact categories simultaneously with R² = 1.0000.
+
+---
+
+## 🌾 Field Emission Calculator
+
+In addition to the LCA Impact Predictor, the tool includes a **Field Emission Calculator** based on established scientific methodologies:
+
+| Emission | Formula | Methodology |
+|---|---|---|
+| Methane (CH₄) | EFc × Duration × SFo × SFw | IPCC |
+| Nitrous Oxide (N₂O) | (FSN + FON) × EF × 44/28 | IPCC |
+| Nitrate (NO₃) | N_total × LF × 62/14 | IPCC |
+| Ammonia (NH₃) | N_total × EF × 17/14 | IPCC |
+| Phosphate (PO₄) | P_total × RF × 95/31 | SALCA |
+
+Supports two irrigation modes (Fully Flooded / AWD) and two organic amendments (Farm-Yard Manure / Vermicompost) with automatic N and P contribution calculations.
 
 ---
 
@@ -55,20 +71,19 @@ Feature importance analysis revealed that **Zn exclusively drives Ecotoxicity** 
 ```
 rice-fertiliser-predictor/
 │
-├── app.py                  ← Streamlit web application
-├── requirements.txt        ← Python dependencies
-├── model1_env_impacts.pkl  ← Trained Random Forest model
-├── model2_ecotoxicity.pkl  ← Trained Linear Regression model
+├── app.py                      ← Streamlit web application
+├── requirements.txt            ← Python dependencies
+├── model_all_impacts.pkl       ← Trained MLR model (all 4 impact categories)
 │
 ├── Scripts/
-│   ├── evaluate.py         ← Train and evaluate both models
-│   ├── predict.py          ← Terminal-based predictor
-│   ├── visualise.py        ← Generate validation plots
-│   ├── cross_validate.py   ← Cross validation
-│   └── retrain.py          ← Retrain on new data
+│   ├── evaluate.py             ← Train and evaluate model
+│   ├── predict.py              ← Terminal-based predictor
+│   ├── visualise.py            ← Generate validation plots
+│   ├── cross_validate.py       ← Cross validation
+│   └── retrain.py              ← Retrain on new data
 │
 ├── Data/
-│   └── Trial Run 2 ML.csv  ← Training dataset
+│   └── Trial Run 2 ML.csv     ← Training dataset
 │
 └── Plots/
     ├── plot1_predicted_vs_actual.png
@@ -102,4 +117,3 @@ streamlit run app.py
 **Primusvishwa**
 B.Tech Biotechnology
 *College Project — Environmental Impact Prediction using Machine Learning*
-```
