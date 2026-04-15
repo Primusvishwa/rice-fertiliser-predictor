@@ -1,118 +1,172 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import os
+
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
+from sklearn.preprocessing import StandardScaler
 
-# ── Load Data & Train Models ───────────────────────────────────────────────────
-df = pd.read_csv(r"C:\Users\scvst\Desktop\ML Project\Trial Run 2 ML.csv")
+# ---------------- SETTINGS ---------------- #
+data_path = r"C:\Users\scvst\Desktop\ML Project\Data\Trial Run 2 ML.csv"
+save_dir  = r"C:\Users\scvst\Desktop\ML Project"
 
-X1 = df[['N_rate', 'P_rate', 'K_rate', 'Zn_rate']]
-y1 = df[['global_warming', 'freshwater_eutrophication', 'terrestrial_acidification']]
-X2 = df[['Zn_rate']]
-y2 = df['terrestrial_ecotoxicity']
+# ---------------- LOAD DATA ---------------- #
+df = pd.read_csv(data_path)
 
-X1_train, X1_test, y1_train, y1_test = train_test_split(X1, y1, test_size=0.2, random_state=42)
-X2_train, X2_test, y2_train, y2_test = train_test_split(X2, y2, test_size=0.2, random_state=42)
+# ---------------- FEATURES (NPK ONLY) ---------------- #
+X = df[['N_rate', 'P_rate', 'K_rate']]
+y = df[['global_warming',
+        'freshwater_eutrophication',
+        'terrestrial_acidification']]
 
-model1 = RandomForestRegressor(n_estimators=100, random_state=42)
-model1.fit(X1_train, y1_train)
-y1_pred = model1.predict(X1_test)
+targets = [
+    'Global Warming',
+    'Freshwater Eutrophication',
+    'Terrestrial Acidification'
+]
 
-model2 = LinearRegression()
-model2.fit(X2_train, y2_train)
-y2_pred = model2.predict(X2_test)
+units = ['kg CO₂-eq', 'kg P-eq', 'kg SO₂-eq']
 
-targets     = ['Global Warming', 'Freshwater Eutrophication', 'Terrestrial Acidification', 'Terrestrial Ecotoxicity']
-units       = ['kg CO₂-eq', 'kg P-eq', 'kg SO₂-eq', 'CTUe']
-all_actual  = list(y1_test.values.T) + [y2_test.values]
-all_pred    = list(y1_pred.T)        + [y2_pred]
+# ---------------- TRAIN ---------------- #
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
 
-# ── PLOT 1: Predicted vs Actual ────────────────────────────────────────────────
-fig, axes = plt.subplots(2, 2, figsize=(12, 10))
-fig.suptitle('Predicted vs Actual — All Impact Categories', fontsize=15, fontweight='bold')
-axes = axes.flatten()
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
 
-for i in range(4):
-    ax = axes[i]
-    ax.scatter(all_actual[i], all_pred[i], alpha=0.5, color='steelblue', edgecolors='white', s=40)
-    mn = min(all_actual[i].min(), all_pred[i].min())
-    mx = max(all_actual[i].max(), all_pred[i].max())
-    ax.plot([mn, mx], [mn, mx], 'r--', linewidth=1.5, label='Perfect Fit')
-    ax.set_xlabel(f'Actual ({units[i]})')
-    ax.set_ylabel(f'Predicted ({units[i]})')
+y_pred = model.predict(X_test)
+
+# ---------------- STYLE ---------------- #
+plt.rcParams.update({
+    "font.size": 11,
+    "axes.titlesize": 13,
+    "axes.labelsize": 11
+})
+
+# =========================================================
+# 🔥 1. INDIVIDUAL MODEL VALIDATION PLOTS
+# =========================================================
+for i in range(3):
+    actual = y_test.iloc[:, i]
+    pred   = y_pred[:, i]
+
+    r2 = r2_score(actual, pred)
+
+    mn = min(actual.min(), pred.min())
+    mx = max(actual.max(), pred.max())
+
+    plt.figure(figsize=(6,5))
+
+    plt.scatter(actual, pred,
+                alpha=0.7,
+                color='#1f77b4',
+                edgecolors='white',
+                s=60)
+
+    plt.plot([mn, mx], [mn, mx], 'r--', linewidth=1.5)
+
+    plt.xlim(mn, mx)
+    plt.ylim(mn, mx)
+
+    plt.title(targets[i])
+    plt.xlabel(f'Actual ({units[i]})')
+    plt.ylabel(f'Predicted ({units[i]})')
+
+    plt.text(0.05, 0.9, f'R² = {r2:.3f}', transform=plt.gca().transAxes)
+
+    filename = f"validation_{targets[i].replace(' ', '_').lower()}.png"
+    plt.tight_layout()
+    plt.savefig(os.path.join(save_dir, filename), dpi=300)
+    plt.close()
+
+# =========================================================
+# 🔥 2. COMBINED VALIDATION PLOT
+# =========================================================
+fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+
+for i, ax in enumerate(axes):
+    actual = y_test.iloc[:, i]
+    pred   = y_pred[:, i]
+
+    r2 = r2_score(actual, pred)
+
+    mn = min(actual.min(), pred.min())
+    mx = max(actual.max(), pred.max())
+
+    ax.scatter(actual, pred,
+               alpha=0.7,
+               color='#1f77b4',
+               edgecolors='white',
+               s=40)
+
+    ax.plot([mn, mx], [mn, mx], 'r--', linewidth=1.5)
+
+    ax.set_xlim(mn, mx)
+    ax.set_ylim(mn, mx)
+
     ax.set_title(targets[i])
-    ax.legend()
+    ax.text(0.05, 0.9, f'R² = {r2:.3f}', transform=ax.transAxes)
 
+plt.suptitle("Model Validation (NPK → Impacts)", fontweight='bold')
 plt.tight_layout()
-plt.savefig(r"C:\Users\scvst\Desktop\ML Project\plot1_predicted_vs_actual.png", dpi=150)
-print("✅ Saved: plot1_predicted_vs_actual.png")
+plt.savefig(os.path.join(save_dir, "validation_combined.png"), dpi=300)
+plt.close()
 
-# ── PLOT 2: Feature Importance ─────────────────────────────────────────────────
-fig, axes = plt.subplots(1, 3, figsize=(14, 5))
-fig.suptitle('Feature Importance — N, P, K, Zn per Impact Category', fontsize=13, fontweight='bold')
-features = ['N', 'P', 'K', 'Zn']
-colors   = ['#2ecc71', '#3498db', '#e67e22', '#9b59b6']
+# =========================================================
+# 🔥 3. FEATURE IMPORTANCE (NPK ONLY)
+# =========================================================
+features = ['N', 'P', 'K']
+importances = []
 
-for i, name in enumerate(['Global Warming', 'Freshwater Eutrophication', 'Terrestrial Acidification']):
+for i in range(3):
     m = RandomForestRegressor(n_estimators=100, random_state=42)
-    m.fit(X1, y1.iloc[:, i])
-    axes[i].bar(features, m.feature_importances_, color=colors)
-    axes[i].set_title(name)
-    axes[i].set_ylabel('Importance')
-    axes[i].set_ylim(0, 1)
-    for j, v in enumerate(m.feature_importances_):
-        axes[i].text(j, v + 0.02, f'{v:.2f}', ha='center', fontsize=10)
+    m.fit(X, y.iloc[:, i])
+    importances.append(m.feature_importances_)
+
+importances = np.array(importances)
+
+x = np.arange(len(features))
+width = 0.25
+
+plt.figure(figsize=(7,5))
+
+labels = ['GW', 'FE', 'TA']
+colors = ['#2ecc71', '#3498db', '#e67e22']
+
+for i in range(3):
+    plt.bar(x + i*width, importances[i], width,
+            label=labels[i], color=colors[i])
+
+plt.xticks(x + width, features)
+plt.ylabel('Importance')
+plt.title('Feature Importance (NPK)')
+plt.legend()
 
 plt.tight_layout()
-plt.savefig(r"C:\Users\scvst\Desktop\ML Project\plot2_feature_importance.png", dpi=150)
-print("✅ Saved: plot2_feature_importance.png")
+plt.savefig(os.path.join(save_dir, "feature_importance_npk.png"), dpi=300)
+plt.close()
 
-# ── PLOT 3: Input vs Impact Line Plots ────────────────────────────────────────
-fig, axes = plt.subplots(2, 2, figsize=(12, 10))
-fig.suptitle('Fertiliser Input vs Predicted Impact', fontsize=14, fontweight='bold')
+# =========================================================
+# 🔥 4. NORMALIZED OVERALL METRICS
+# =========================================================
+scaler = StandardScaler()
 
-# N vs GWP
-n_range = np.linspace(120, 150, 100)
-base = {'P': 50, 'K': 35, 'Zn': 20}
-inputs_n = pd.DataFrame({'N_rate': n_range, 'P_rate': base['P'], 'K_rate': base['K'], 'Zn_rate': base['Zn']})
-gwp_pred = model1.predict(inputs_n)[:, 0]
-axes[0,0].plot(n_range, gwp_pred, color='#e74c3c', linewidth=2)
-axes[0,0].set_xlabel('Nitrogen (kg/ha)')
-axes[0,0].set_ylabel('Global Warming (kg CO₂-eq)')
-axes[0,0].set_title('N vs Global Warming')
+y_true_scaled = scaler.fit_transform(y_test)
+y_pred_scaled = scaler.transform(y_pred)
 
-# P vs Eutrophication
-p_range = np.linspace(40, 60, 100)
-inputs_p = pd.DataFrame({'N_rate': 135, 'P_rate': p_range, 'K_rate': base['K'], 'Zn_rate': base['Zn']})
-eu_pred = model1.predict(inputs_p)[:, 1]
-axes[0,1].plot(p_range, eu_pred, color='#3498db', linewidth=2)
-axes[0,1].set_xlabel('Phosphorus (kg/ha)')
-axes[0,1].set_ylabel('Freshwater Eutrophication (kg P-eq)')
-axes[0,1].set_title('P vs Freshwater Eutrophication')
+y_true_all = y_true_scaled.flatten()
+y_pred_all = y_pred_scaled.flatten()
 
-# K vs Acidification
-k_range = np.linspace(30, 40, 100)
-inputs_k = pd.DataFrame({'N_rate': 135, 'P_rate': 50, 'K_rate': k_range, 'Zn_rate': base['Zn']})
-ac_pred = model1.predict(inputs_k)[:, 2]
-axes[1,0].plot(k_range, ac_pred, color='#2ecc71', linewidth=2)
-axes[1,0].set_xlabel('Potassium (kg/ha)')
-axes[1,0].set_ylabel('Terrestrial Acidification (kg SO₂-eq)')
-axes[1,0].set_title('K vs Terrestrial Acidification')
+r2 = r2_score(y_true_all, y_pred_all)
+rmse = np.sqrt(mean_squared_error(y_true_all, y_pred_all))
+mae = mean_absolute_error(y_true_all, y_pred_all)
 
-# Zn vs Ecotoxicity
-zn_range = np.linspace(10, 30, 100)
-inputs_zn = pd.DataFrame({'Zn_rate': zn_range})
-eco_pred_line = model2.predict(inputs_zn)
-axes[1,1].plot(zn_range, eco_pred_line, color='#9b59b6', linewidth=2)
-axes[1,1].set_xlabel('Zinc (kg/ha)')
-axes[1,1].set_ylabel('Terrestrial Ecotoxicity (CTUe)')
-axes[1,1].set_title('Zn vs Terrestrial Ecotoxicity')
+print("\n📊 Overall Model Performance (Normalized)")
+print(f"R²   : {r2:.4f}")
+print(f"RMSE : {rmse:.4f}")
+print(f"MAE  : {mae:.4f}")
 
-plt.tight_layout()
-plt.savefig(r"C:\Users\scvst\Desktop\ML Project\plot3_input_vs_impact.png", dpi=150)
-print("✅ Saved: plot3_input_vs_impact.png")
-
-plt.show()
-print("\n✅ All 3 plots generated and saved to your ML Project folder!")
+print("\n✅ Done! All plots saved in project folder.")

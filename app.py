@@ -38,7 +38,7 @@ tab1, tab2 = st.tabs(["🔬 LCA Impact Predictor", "🌾 Field Emission Calculat
 with tab1:
 
     st.subheader("Predict Environmental Impact Scores")
-    st.markdown("Uses a trained **Multivariate Linear Regression** model to predict LCA impact scores from fertiliser inputs.")
+    st.markdown("Uses a trained **Random Forest** model to predict LCA impact scores from fertiliser inputs.")
 
     mode = st.radio("Select Mode", ["Single Prediction", "Compare Two Combinations"], horizontal=True)
     st.markdown("---")
