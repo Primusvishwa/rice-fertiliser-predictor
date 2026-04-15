@@ -13,14 +13,14 @@ st.set_page_config(
 model = joblib.load("model_all_impacts.pkl")
 
 # ── Helper Functions ───────────────────────────────────────────────────────────
-def predict(N, P, K, Zn):
-    inputs = pd.DataFrame([[N, P, K, Zn]], columns=['N_rate', 'P_rate', 'K_rate', 'Zn_rate'])
+def predict(N, P, K):
+    inputs = pd.DataFrame([[N, P, K]], columns=['N_rate', 'P_rate', 'K_rate'])
     pred = model.predict(inputs)[0]
-    return pred[0], pred[1], pred[2], pred[3]
+    return pred[0], pred[1], pred[2]
 
-def validate(N, P, K, Zn):
-    ranges = {'N': (120, 150), 'P': (40, 60), 'K': (30, 40), 'Zn': (10, 30)}
-    inputs = {'N': N, 'P': P, 'K': K, 'Zn': Zn}
+def validate(N, P, K):
+    ranges = {'N': (120, 150), 'P': (40, 60), 'K': (30, 40)}
+    inputs = {'N': N, 'P': P, 'K': K}
     return [f"**{k}** = {v} kg (valid: {ranges[k][0]}–{ranges[k][1]} kg)"
             for k, v in inputs.items() if not (ranges[k][0] <= v <= ranges[k][1])]
 
@@ -43,7 +43,7 @@ with tab1:
     mode = st.radio("Select Mode", ["Single Prediction", "Compare Two Combinations"], horizontal=True)
     st.markdown("---")
 
-    st.info("**Recommended Ranges (kg/ha):** N: 120–150  |  P: 40–60  |  K: 30–40  |  Zn: 10–30\n\n⚠️ Values outside these ranges may give unreliable predictions.")
+    st.info("**Recommended Ranges (kg/ha):** N: 120–150  |  P: 40–60  |  K: 30–40\n\n⚠️ Values outside these ranges may give unreliable predictions.")
 
     # ── Single Mode ────────────────────────────────────────────────────────────
     if mode == "Single Prediction":
@@ -51,12 +51,11 @@ with tab1:
         col1, col2 = st.columns(2)
         with col1:
             N  = st.number_input("Nitrogen (N)",   min_value=0.0, value=135.0, step=0.5)
-            K  = st.number_input("Potassium (K)",  min_value=0.0, value=35.0,  step=0.5)
         with col2:
             P  = st.number_input("Phosphorus (P)", min_value=0.0, value=50.0,  step=0.5)
-            Zn = st.number_input("Zinc (Zn)",      min_value=0.0, value=20.0,  step=0.5)
+        K  = st.number_input("Potassium (K)",  min_value=0.0, value=35.0,  step=0.5)
 
-        out_of_range = validate(N, P, K, Zn)
+        out_of_range = validate(N, P, K)
         if out_of_range:
             st.error("🚨 Out of range:\n\n" + "\n".join(f"- {w}" for w in out_of_range))
         else:
@@ -64,7 +63,7 @@ with tab1:
 
         st.markdown("---")
         if st.button("🔍 Predict Environmental Impact", use_container_width=True):
-            gwp, eu, ac, eco = predict(N, P, K, Zn)
+            gwp, eu, ac = predict(N, P, K)
 
             st.subheader("📊 Predicted Environmental Impact Scores")
             col1, col2 = st.columns(2)
@@ -73,7 +72,6 @@ with tab1:
                 st.metric("💧 Freshwater Eutrophication", f"{eu:.6f} kg P-eq")
             with col2:
                 st.metric("🌫️ Terrestrial Acidification", f"{ac:.4f} kg SO₂-eq")
-                st.metric("☠️ Terrestrial Ecotoxicity",   f"{eco:,.2f} CTUe")
 
             st.markdown("---")
             st.subheader("📖 What do these mean?")
@@ -101,13 +99,6 @@ with tab1:
                 Expressed in **kg SO₂-equivalent**.
                 """)
 
-            with st.expander("☠️ Terrestrial Ecotoxicity"):
-                st.markdown("""
-                **Terrestrial Ecotoxicity** measures the toxic impact on land-based ecosystems.
-                **Zinc** is the dominant driver — excess Zn accumulates in soil and becomes toxic to organisms.
-                Expressed in **CTUe** (Comparative Toxic Units for ecosystems).
-                """)
-
             st.markdown("---")
             st.caption("Model trained on conventional rice cultivation LCA data using ecoinvent processes. Results are predictions — not a substitute for full LCA.")
 
@@ -121,17 +112,15 @@ with tab1:
             N_a  = st.number_input("Nitrogen (N) — A",   min_value=0.0, value=120.0, step=0.5, key="Na")
             P_a  = st.number_input("Phosphorus (P) — A", min_value=0.0, value=40.0,  step=0.5, key="Pa")
             K_a  = st.number_input("Potassium (K) — A",  min_value=0.0, value=30.0,  step=0.5, key="Ka")
-            Zn_a = st.number_input("Zinc (Zn) — A",      min_value=0.0, value=10.0,  step=0.5, key="Zna")
 
         with col_b:
             st.markdown("### 🅱️ Combination B")
             N_b  = st.number_input("Nitrogen (N) — B",   min_value=0.0, value=150.0, step=0.5, key="Nb")
             P_b  = st.number_input("Phosphorus (P) — B", min_value=0.0, value=60.0,  step=0.5, key="Pb")
             K_b  = st.number_input("Potassium (K) — B",  min_value=0.0, value=40.0,  step=0.5, key="Kb")
-            Zn_b = st.number_input("Zinc (Zn) — B",      min_value=0.0, value=30.0,  step=0.5, key="Znb")
 
-        warn_a = validate(N_a, P_a, K_a, Zn_a)
-        warn_b = validate(N_b, P_b, K_b, Zn_b)
+        warn_a = validate(N_a, P_a, K_a)
+        warn_b = validate(N_b, P_b, K_b)
         if warn_a:
             st.error("🚨 Combination A out of range:\n\n" + "\n".join(f"- {w}" for w in warn_a))
         if warn_b:
@@ -139,16 +128,16 @@ with tab1:
 
         st.markdown("---")
         if st.button("🔍 Compare Combinations", use_container_width=True):
-            gwp_a, eu_a, ac_a, eco_a = predict(N_a, P_a, K_a, Zn_a)
-            gwp_b, eu_b, ac_b, eco_b = predict(N_b, P_b, K_b, Zn_b)
+            gwp_a, eu_a, ac_a = predict(N_a, P_a, K_a)
+            gwp_b, eu_b, ac_b = predict(N_b, P_b, K_b)
 
             st.subheader("📊 Comparison Results")
             categories = ["🌍 Global Warming", "💧 Freshwater Eutrophication",
-                         "🌫️ Terrestrial Acidification", "☠️ Terrestrial Ecotoxicity"]
-            units      = ["kg CO₂-eq", "kg P-eq", "kg SO₂-eq", "CTUe"]
-            values_a   = [gwp_a, eu_a, ac_a, eco_a]
-            values_b   = [gwp_b, eu_b, ac_b, eco_b]
-            formats    = ["{:,.2f}", "{:.6f}", "{:.4f}", "{:,.2f}"]
+                         "🌫️ Terrestrial Acidification"]
+            units      = ["kg CO₂-eq", "kg P-eq", "kg SO₂-eq"]
+            values_a   = [gwp_a, eu_a, ac_a]
+            values_b   = [gwp_b, eu_b, ac_b]
+            formats    = ["{:,.2f}", "{:.6f}", "{:.4f}"]
 
             for i, cat in enumerate(categories):
                 col1, col2, col3 = st.columns([2, 2, 1])
@@ -164,38 +153,20 @@ with tab1:
             st.markdown("---")
             st.caption("Lower values = less environmental impact.")
 
-    # ── Model Validation ───────────────────────────────────────────────────────
-    st.markdown("---")
-    st.subheader("📈 Model Validation")
-    st.markdown("The following plots validate the ML model trained on rice cultivation LCA data.")
-
-    with st.expander("📉 Predicted vs Actual"):
-        st.image("Plots/plot1_predicted_vs_actual.png", use_container_width=True)
-        st.caption("Each point represents a test sample. Points close to the red line indicate accurate predictions.")
-
-    with st.expander("📊 Feature Importance"):
-        st.image("Plots/plot2_feature_importance.png", use_container_width=True)
-        st.caption("Shows how much each fertiliser input (N, P, K, Zn) influences each impact category.")
-
-    with st.expander("📈 Input vs Impact"):
-        st.image("Plots/plot3_input_vs_impact.png", use_container_width=True)
-        st.caption("Shows how each impact score changes as individual fertiliser inputs increase.")
-
     # ── Fertiliser Impact Intensity ────────────────────────────────────────────
     st.markdown("---")
     st.subheader("⚗️ Fertiliser Impact Intensity")
     st.markdown("Environmental impact caused by **1 kg of each fertiliser input**, calculated independently in OpenLCA.")
 
     impact_data = {
-        "Input": ["Nitrogen (N)", "Phosphorus (P)", "Potassium (K)", "Zinc (Zn)"],
-        "Global Warming (kg CO₂-eq)": [4.964134, 2.906595, 3.016340, 0.777299],
-        "Terrestrial Acidification (kg SO₂-eq)": [0.021555, 0.014359, 0.012404, 0.006452],
-        "Freshwater Eutrophication (kg P-eq)": [0.001469, 0.001000, 0.000679, 0.000460],
-        "Terrestrial Ecotoxicity (CTUe)": [5.186745, 4.168297, 2.671163, 612.915864],
+        "Input": ["Nitrogen (N)", "Phosphorus (P)", "Potassium (K)"],
+        "Global Warming (kg CO₂-eq)": [4.964134, 2.906595, 3.016340],
+        "Terrestrial Acidification (kg SO₂-eq)": [0.021555, 0.014359, 0.012404],
+        "Freshwater Eutrophication (kg P-eq)": [0.001469, 0.001000, 0.000679],
     }
     df_intensity = pd.DataFrame(impact_data)
     st.dataframe(df_intensity, use_container_width=True, hide_index=True)
-    st.info("💡 **Zinc (Zn)** has dramatically higher ecotoxicity per kg (612.9 CTUe) compared to N, P and K (2.7–5.2 CTUe).")
+    st.info("💡 **Nitrogen (N)** has the highest Global Warming impact per kg (4.96 kg CO₂-eq) due to N₂O emissions during application.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 2 — FIELD EMISSION CALCULATOR
